@@ -10,9 +10,9 @@ add_rules("mode.debug", "mode.release")
 toolchain("arm-none-eabi")
     -- 标记为独立工具链
     set_kind("standalone")
-    -- set toolchain sdk path
-    set_sdkdir("C:\\Program Files (x86)\\GNU Arm Embedded Toolchain\\10 2021.10\\")
-    set_bindir("C:\\Program Files (x86)\\GNU Arm Embedded Toolchain\\10 2021.10\\bin")
+    -- 定义交叉编译工具链地址
+    set_sdkdir("C:\\gcc-arm-none-eabi\\10 2021.10")
+    --set_bindir("C:\\Program Files (x86)\\GNU Arm Embedded Toolchain\\10 2021.10\\bin")
 toolchain_end()
 
 target("demo")
@@ -39,41 +39,6 @@ target("demo")
     -- 添加启动文件
     add_files("startup_stm32f103xe.s");
     
-    local link_script = "STM32F103ZETx_FLASH.ld"
-    
-    -- 汇编编译选项
-    local asmflags = {
-        "-mcpu=cortex-m3", 
-        "-mthumb", 
-        "-Og", 
-        "-Wall", 
-        "-fdata-sections", 
-        "-ffunction-sections",  
-        "-g -gdwarf-2",
-        {force = true}   -- {force = true} 强制启用参数
-    }
-    -- C编译选项
-    local cflags = {
-        "-mcpu=cortex-m3",
-        "-Og", 
-        "-Wall", 
-        "-fdata-sections", 
-        "-ffunction-sections", 
-        "-g -gdwarf-2",
-        {force = true}
-    }
-    -- 链接选项
-    local ldflags = {
-        "-mcpu=cortex-m3",
-        "--specs=nosys.specs",
-        "-Wl,-Map=STM32_XMake.map,--cref",
-        "-Wl,--gc-sections",
-        "-u _printf_float",  -- 支持 printf %f
-        {force = true}
-    }   
-    -- 设置链接文件的链接选项
-    ldflags_link_script = "-T"..link_script
-
     -- 源文件和头文件路径
     local src_path = {
         "./Core/",
@@ -106,20 +71,39 @@ target("demo")
     if is_mode("debug") then 
         add_cflags("-g", "-gdwarf-2")
     end
-    -- 添加c编译选项
-    for _, c in ipairs(cflags) do
-        add_cflags(c);
-    end
-    -- 添加汇编编译选项
-    for _, as in ipairs(asmflags) do
-        add_asflags(as);
-    end
 
-    -- 添加链接选项
-    for _, ld in ipairs(ldflags) do
-        add_ldflags(ld)
-    end 
-    add_ldflags(ldflags_link_script);
+    add_cflags(
+        "-Og",
+        "-mcpu=cortex-m3",
+        "-mthumb",
+        "-Wall",
+        "-fdata-sections",
+        "-ffunction-sections",
+        "-g -gdwarf-2",
+        {force = true}
+    )
+
+    add_asflags(
+        "-Og",
+        "-mcpu=cortex-m3",
+        "-mthumb",
+        "-x assembler-with-cpp",
+        "-Wall",
+        "-fdata-sections", 
+        "-ffunction-sections",
+        "-g -gdwarf-2",
+        {force = true}
+    )
+
+    add_ldflags(
+        "-Og",
+        "-mcpu=cortex-m3",
+        "-TSTM32F103ZETx_FLASH.ld",
+        "-Wl,--gc-sections",
+        "--specs=nosys.specs",
+        "-u _printf_float",  
+        {force = true}
+    )
 
     after_build(
         function(target)
